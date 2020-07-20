@@ -1,0 +1,294 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(SBpitch)
+library(StatsBombR)
+library(tidyverse)
+library(ggsoccer)
+library(gt)
+library(patchwork)
+```
+load libraries
+
+```{r}
+devtools::install_github("statsbomb/StatsBombR")
+```
+Download statsbomb package from github
+
+```{r}
+free_comps <- FreeCompetitions()
+Comp <- FreeCompetitions() %>%
+  filter(competition_name == "FIFA World Cup") 
+Matches <- FreeMatches(Comp) 
+StatsBombData <- StatsBombFreeEvents(MatchesDF = Matches, Parallel = FALSE)
+StatsBombData <-  allclean(StatsBombData) 
+StatsBombData <- goalkeeperinfo(StatsBombData)
+StatsBombData <- shotinfo(StatsBombData)
+StatsBombData <- formatelapsedtime(StatsBombData)
+mensWC <- StatsBombData
+```
+Read in data from GitHub
+
+```{r}
+mensWC_filtered <- StatsBombData %>%
+  select(period, minute, second, duration, under_pressure, counterpress, type.name, play_pattern.name, player.name, position.name, shot.statsbomb_xg, shot.first_time, shot.aerial_won, shot.follows_dribble, shot.outcome.name, shot.type.name, goalkeeper.position.name, goalkeeper.type.name, goalkeeper.outcome.name, foul_committed.advantage, foul_committed.penalty, foul_committed.type.name, foul_won.advantage, foul_won.defensive, foul_won.penalty, location.x, location.y, shot.open_goal, shot.one_on_one, DistToGoal, DistToKeeper, AngleToGoal, AngleToKeeper, distance.ToD1, distance.ToD2, player.name.GK, location.x.GK, location.y.GK, AttackersBehindBall, DefendersBehindBall, DefendersInCone, InCone.GK)
+```
+Select variables for analysis
+
+```{r}
+StatsBombCloseShots <- StatsBombFiltered %>%
+  filter(type.name == "Shot", shot.type.name != "Penalty") %>%
+  filter((location.x < 18) | (location.x > 102), ((location.y >= 18) & (location.y <= 62))) 
+
+create_Pitch() +
+  geom_point(data = StatsBombCloseShots, aes(x = location.x, y = location.y, color = shot.statsbomb_xg)) +
+scale_color_gradient(low = "darkorange", high = "darkblue")
+```
+Expected Goals for shots within the 18
+
+
+```{r}
+StatsBombPenalties <- StatsBombFiltered %>%
+  filter(type.name == "Foul Won") 
+StatsBombPenalties %>%
+  filter((location.x < 20) | (location.x > 100)) %>%
+  ggplot(aes(x = location.x, y = location.y)) +
+  geom_point() +
+  theme_bw()
+```
+
+```{r}
+devtools::install_github("FCrSTATS/SBpitch")
+```
+download SBpitch data
+
+```{r}
+
+closePenalties <- StatsBombPenalties %>%
+  filter((location.x < 22) | (location.x > 98), ((location.y >= 14) & (location.y <= 66))) 
+
+create_Pitch() +
+  geom_point(data = closePenalties, aes(x = location.x, y = location.y)) +
+  theme_bw() +
+  labs(title = "Fouls Won Within and Around the 18",
+       subtitle = "Men's World Cup 2018",
+       x = " ",
+       y = " ",
+       caption = "Data from Statsbomb")
+  
+```
+Fouls Won close to and within the 18
+
+```{r}
+StatsBombShots <- StatsBombFiltered %>%
+  filter(type.name == "Shot")
+
+ggplot()+
+  annotate_pitch(dimensions = pitch_statsbomb)+
+  theme_pitch()+
+  coord_flip(xlim = c(55, 120),
+             ylim = c(-12, 105)) +
+  geom_point(data = StatsBombShots, aes(x = location.x, y = location.y, color = shot.statsbomb_xg, shape = (shot.outcome.name == "Goal"))) +
+  scale_color_gradient(low = "darkorange", high = "darkblue")
+
+ggplot()+
+  annotate_pitch(dimensions = pitch_statsbomb)+
+  theme_pitch()+
+  coord_flip(xlim = c(55, 120),
+             ylim = c(-12, 105)) +
+  geom_point(data = StatsBombCloseShots, aes(x = location.x, y = location.y, color = shot.statsbomb_xg)) +
+  scale_color_gradient(low = "darkorange", high = "darkblue", name = "Statsbomb Expected Goals") +
+  labs(title = "Expected Goals for Open Play Shots",
+       subtitle = "Men's World Cup 2018",
+       caption = "Data Source: Statsbomb") 
+  
+  
+```
+Shots taken in mens world cup 2018
+
+```{r}
+Comp2 <- FreeCompetitions() %>%
+  filter((competition_name == "FIFA World Cup") | (competition_name == "Champions League") | (competition_name == "La Liga") | (competition_name == "Premier League"))
+Matches2 <- FreeMatches(Comp2) 
+StatsBombData2 <- StatsBombFreeEvents(MatchesDF = Matches2, Parallel = FALSE)
+StatsBombData2 <- allclean(StatsBombData2) 
+StatsBombData2 <- goalkeeperinfo(StatsBombData2)
+StatsBombData2 <- shotinfo(StatsBombData2)
+StatsBombData2 <- formatelapsedtime(StatsBombData2)
+allMens <- StatsBombData2
+```
+Read in data for all of the mens data availible 
+
+```{r}
+Comp3 <- FreeCompetitions() %>%
+  filter(competition_name == "Women's World Cup")
+Matches3 <- FreeMatches(Comp3) 
+WomensWC <- StatsBombFreeEvents(MatchesDF = Matches3, Parallel = FALSE)
+WomensWC <- goalkeeperinfo(WomensWC)
+WomensWC <- allclean(WomensWC)
+WomensWC <- shotinfo(WomensWC)
+```
+Download Women's World Cup Data
+
+```{r}
+allMens_filtered <- allMens %>%
+  select(period, minute, second, duration, under_pressure, counterpress, type.name, play_pattern.name, player.name, position.name, shot.statsbomb_xg, shot.first_time, shot.aerial_won, shot.follows_dribble, shot.outcome.name, shot.type.name, goalkeeper.position.name, goalkeeper.type.name, goalkeeper.outcome.name, foul_committed.advantage, foul_committed.penalty, foul_committed.type.name, foul_won.advantage, foul_won.defensive, foul_won.penalty, location.x, location.y, shot.open_goal, shot.one_on_one, DistToGoal, DistToKeeper, AngleToGoal, AngleToKeeper, distance.ToD1, distance.ToD2, player.name.GK, location.x.GK, location.y.GK, AttackersBehindBall, DefendersBehindBall, DefendersInCone, InCone.GK)
+
+womensWC_filtered <- WomensWC %>%
+  select(period, minute, second, duration, under_pressure, counterpress, type.name, play_pattern.name, player.name, position.name, shot.statsbomb_xg, shot.first_time, shot.aerial_won, shot.follows_dribble, shot.outcome.name, shot.type.name, goalkeeper.position.name, goalkeeper.type.name, goalkeeper.outcome.name, foul_committed.advantage, foul_committed.penalty, foul_committed.type.name, foul_won.advantage, foul_won.defensive, foul_won.penalty, location.x, location.y, shot.open_goal, shot.one_on_one, DistToGoal, DistToKeeper, AngleToGoal, AngleToKeeper, distance.ToD1, distance.ToD2, player.name.GK, location.x.GK, location.y.GK, AttackersBehindBall, DefendersBehindBall, DefendersInCone, InCone.GK)
+```
+Select variables needed for analysis from both new datasets
+
+```{r}
+womensWC_filtered %>%
+  filter(shot.type.name == "Penalty", period != 5) %>%
+  nrow()
+
+womensWC_filtered %>%
+  filter(shot.type.name == "Penalty", period != 5, shot.outcome.name == "Goal") %>%
+  nrow()
+
+mensWC_filtered %>%
+  filter(shot.type.name == "Penalty", period != 5) %>%
+  nrow()
+
+mensWC_filtered %>%
+  filter(shot.type.name == "Penalty", shot.outcome.name == "Goal", period != 5) %>%
+  nrow()
+
+allMens_filtered %>%
+  filter(shot.type.name == "Penalty", period != 5) %>%
+  nrow()
+
+allMens_filtered %>%
+  filter(shot.type.name == "Penalty", shot.outcome.name == "Goal", period != 5) %>%
+  nrow()
+```
+
+```{r}
+penaltyKicksWon <- allMens_filtered %>%
+  filter(minute <= 120, foul_committed.penalty == TRUE)
+
+create_Pitch() +
+  geom_point(data = penaltyKicksWon, aes(x = location.x, y = location.y))
+```
+
+```{r}
+mensWC_filtered %>%
+  filter(type.name == "Shot", (location.x < 18) | (location.x > 102), ((location.y >= 18) & (location.y <= 62)), shot.type.name != "Penalty") %>%
+  nrow()
+
+mensWC_filtered %>%
+  filter(type.name == "Shot", (location.x < 18) | (location.x > 102), ((location.y >= 18) & (location.y <= 62)), shot.outcome.name == "Goal", shot.type.name != "Penalty") %>%
+  nrow()
+
+
+womensWC_filtered %>%
+  filter(type.name == "Shot", (location.x < 18) | (location.x > 102), ((location.y >= 18) & (location.y <= 62)), shot.type.name != "Penalty") %>%
+  nrow()
+
+womensWC_filtered %>%
+  filter(type.name == "Shot", (location.x < 18) | (location.x > 102), ((location.y >= 18) & (location.y <= 62)), shot.outcome.name == "Goal", shot.type.name != "Penalty") %>%
+  nrow()
+
+
+allMens_filtered %>%
+  filter(type.name == "Shot", (location.x < 18) | (location.x > 102), ((location.y >= 18) & (location.y <= 62)), shot.type.name != "Penalty") %>%
+  nrow()
+
+allMens_filtered %>%
+  filter(type.name == "Shot", (location.x < 18) | (location.x > 102), ((location.y >= 18) & (location.y <= 62)), shot.outcome.name == "Goal", shot.type.name != "Penalty") %>%
+  nrow()
+```
+
+```{r}
+boxShotsMWC <- mensWC_filtered %>%
+  filter(type.name == "Shot", shot.type.name != "Penalty", (location.x < 18) | (location.x > 102), ((location.y >= 18) & (location.y <= 62)), shot.statsbomb_xg >= .5)
+  
+above0.5MWC <- ggplot()+
+  annotate_pitch(dimensions = pitch_statsbomb)+
+  theme_pitch()+
+  coord_flip(xlim = c(55, 120),
+             ylim = c(-12, 105)) +
+  geom_point(data = boxShotsMWC, aes(x = location.x, y = location.y)) +
+  labs(title = "Men's World Cup")
+
+
+
+boxShotsAllMens <- allMens_filtered %>%
+  filter(type.name == "Shot", shot.type.name != "Penalty", (location.x < 18) | (location.x > 102), ((location.y >= 18) & (location.y <= 62)), shot.statsbomb_xg >= .5)
+  
+above0.5allMens <- ggplot()+
+  annotate_pitch(dimensions = pitch_statsbomb)+
+  theme_pitch()+
+  coord_flip(xlim = c(55, 120),
+             ylim = c(-12, 105)) +
+  geom_point(data = boxShotsAllMens, aes(x = location.x, y = location.y)) +
+  labs(title = "All Men's Play")
+
+
+
+boxShotsWWC <- womensWC_filtered %>%
+  filter(type.name == "Shot", shot.type.name != "Penalty", (location.x < 18) | (location.x > 102), ((location.y >= 18) & (location.y <= 62)), shot.statsbomb_xg >= .5)
+  
+above0.5WWC <-ggplot()+
+  annotate_pitch(dimensions = pitch_statsbomb)+
+  theme_pitch()+
+  coord_flip(xlim = c(55, 120),
+             ylim = c(-12, 105)) +
+  geom_point(data = boxShotsWWC, aes(x = location.x, y = location.y)) +
+  labs(title = "Women's World Cup")
+
+above0.5WWC + above0.5MWC 
+```
+
+```{r}
+write.csv(mensWC_filtered,'mensWC.csv')
+```
+
+
+```{r}
+penaltyShootoutMensWC <- mensWC_filtered %>%
+  filter(period == 5)
+
+penaltyShootoutWomensWC <- womensWC_filtered %>%
+  filter(period == 5)
+
+penaltyShootoutAllMens <- allMens_filtered %>%
+  filter(period == 5)
+```
+
+```{r}
+openShotsAllMens <- allMens_filtered %>%
+  filter(type.name == "Shot", DefendersBehindBall < 4, AngleToGoal >= 70 & AngleToGoal <= 110, shot.type.name == "Penalty", period != 5)
+
+openShotsAllMens %>%
+  filter(shot.outcome.name == "Goal") %>%
+  nrow()
+
+openShotsAllMens %>%
+  ggplot(aes(x = DistToGoal)) +
+  geom_histogram() +
+  theme_bw()
+
+openShotsAllMens %>%
+  ggplot(aes(x = location.x, y = location.y)) +
+  annotate_pitch(dimensions = pitch_statsbomb)+
+  theme_pitch()+
+  coord_flip(xlim = c(55, 120),
+             ylim = c(-12, 105)) +
+  geom_point() 
+```
+
+
+```{r}
+mensWCRegPKShots <- mensWC_filtered %>%
+  filter(type.name == "Shot", shot.type.name == "Penalty", period != 5) 
+
+mensWCRegPKFouls <- mensWC_filtered %>%
+  filter(period != 5, foul_won.penalty == TRUE) 
+```
+
+
